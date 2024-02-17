@@ -128,6 +128,28 @@ class growing_graph:
 
         return network_state.detach().numpy()
 
+    def pair_embeddings(self, W, network_state, self_link=False):
+        node_embeddings_concat_dict = {}
+        idx = np.arange(len(W))
+
+        W = abs(W)
+        links = np.clip(np.tril(W) + np.triu(W).T, 0, 1)
+        if not self_link:
+            np.fill_diagonal(links, 0)
+
+        for i in range(len(W)):
+            nbr = links[i] > 0
+
+            for j in idx[nbr]:
+                concat_feat = np.concatenate([network_state[i], network_state[j]])
+                node_embeddings_concat_dict[len(node_embeddings_concat_dict)] = {
+                    "from_node": i,
+                    "to_node": j,
+                    "concat_feat": concat_feat,
+                }
+
+        return node_embeddings_concat_dict
+
     def predict_new_nodes(self, config, model):
         pass
 

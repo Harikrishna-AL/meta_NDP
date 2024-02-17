@@ -25,3 +25,10 @@ nx.draw(init_graph, pos, with_labels=True, font_weight="bold")
 print(w)
 # save the graph as a png file
 plt.savefig("graph.png")
+
+# state of size  4*8
+import numpy as np
+
+net_state = np.random.rand(4, 8)
+pair_dict = graph.pair_embeddings(W=w, network_state=net_state, self_link=True)
+print(pair_dict)
