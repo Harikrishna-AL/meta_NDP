@@ -47,11 +47,11 @@ class growing_graph:
             nb_disjoint_initial_graphs = len(disjoint_initial_graphs)
 
         if undirected:
-            G = nx.from_numpy_array(W, create_using=nx.Graph)
+            self.G = nx.from_numpy_array(W, create_using=nx.Graph)
         else:
-            G = nx.from_numpy_array(W, create_using=nx.DiGraph)
+            self.G = nx.from_numpy_array(W, create_using=nx.DiGraph)
 
-        return G, W
+        return self.G, W
 
     def add_new_nodes(self, config, new_nodes_prediction):
         if len(self.G) == 1:
@@ -150,8 +150,30 @@ class growing_graph:
 
         return node_embeddings_concat_dict
 
-    def predict_new_nodes(self, config, model):
-        pass
+    def predict_new_nodes(self, config, model, concat_node_embeddings):
+        new_nodes = []
+        with torch.no_grad():
+            prediction = (
+                model(torch.tensor(concat_node_embeddings, dtype=torch.float32))
+                .detach()
+                .numpy()
+            )
+            new_nodes = (prediction > 0).squeeze()
 
-    def update_weights(self, config, model):
-        pass
+        return new_nodes
+
+    def update_weights(self, network_state, config, model):
+        with torch.no_grad():
+            for i, j in self.G.edges():
+                self.G[i][j]["weight"] = (
+                    model(
+                        torch.tensor(
+                            np.concatenate([network_state[i], network_state[j]]),
+                            dtype=torch.float32,
+                        )
+                    )
+                    .detach()
+                    .numpy()[0]
+                )
+
+        return self.G
