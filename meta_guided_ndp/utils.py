@@ -10,3 +10,6 @@ def x0_sampling(dist, num_parameters):
         return 2 * np.random.rand(num_parameters) - 1
     else:
         raise ValueError("Unknown distribution for x0")
+
+def seed_python_numpy_torch_cuda(seed):
+    pass
