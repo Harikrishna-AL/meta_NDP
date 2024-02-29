@@ -1,8 +1,11 @@
+import copy
+
 from NDP import growing_graph as meta_ndp
 from utils import seed_python_numpy_torch_cuda
 
 import numpy as np
 import torch
+import networkx as nx
 
 def fitness_functional(config: dict, graph: meta_ndp):
     def fitness(evolved_parameters: np.array):
@@ -41,7 +44,54 @@ def fitness_functional(config: dict, graph: meta_ndp):
                 bias=config['growth_model_bias'],
             )
             
-                
+            mlp_weight_model = graph.mlp(
+                input_dim=config['node_embedding_size'] * 2,
+                output_dim=config['node_embedding_size'],
+                hidden_layers_dims=config['mlp_weight_hidden_layers_dims'],
+                last_layer_activated=config["weight_model_last_layer_activated"],
+                activation=torch.nn.Tanh(),
+                bias=config['weight_model_bias'],
+            )
+
+            i1 = config['node_embedding_size'] if config['coevolve_initial_embd'] else 0
+            i2 = i1 + config['params_growth_model']
+            i3 = i2 + config['params_weight_model']
+
+            torch.nn.utils.vector_to_parameters(
+                torch.tensor(evolved_parameters[i1:i2], dtype=torch.float64, requires_grad=False), mlp_growth_model.parameters()
+                )
+
+            torch.nn.utils.vector_to_parameters(
+                torch.tensor(evolved_parameters[i2:i3], dtype=torch.float64, requires_grad=False), mlp_weight_model.parameters()
+            )
+
+            network_state = copy.deepcopy(initial_network_state)
+            obs_dim_tuple = (config['observation_dim'], config['observation_dim'])
+
+            mean_episode_reward = 0
+            for growth_cycle_nb in range(config['number_of_growth_cycles']):
+                try:
+                    diameter = nx.diameter(G.to_undirected())
+                except:
+                    diameter = int(np.sqrt(len(G)))
+                    
+            network_thinking_time = diameter + config['network_thinking_time_extra_growth']
+
+            network_state = graph.propagate_features(
+                network_state=network_state,
+                network_thinking_time=network_thinking_time,
+                activation_function=torch.nn.Tanh(),
+                additive_update=True,
+                feature_transformation_model=None,
+                persistent_observation=None,
+            )
+
+            if config['node_based_growth']:
+                embeddings_for_growth_model = network_state
+
+            new_nodes_prediction = graph.predict_new_nodes(model=mlp_growth_model, concat_node_embeddings=embeddings_for_growth_model)
+
+                 
 
 
     return fitness

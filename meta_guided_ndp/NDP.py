@@ -41,6 +41,8 @@ class growing_graph:
                     data_rvs=rvs,
                     random_state=rng,
                 ).toarray()  # rows are outbounds, columns are inbounds
+            
+            np.fill_diagonal(W, 0)
             disjoint_initial_graphs = [
                 e for e in nx.connected_components(nx.from_numpy_array(W))
             ]
@@ -51,7 +53,7 @@ class growing_graph:
         else:
             self.G = nx.from_numpy_array(W, create_using=nx.DiGraph)
 
-        return self.G, W
+        return self.G, nx.adjacency_matrix(self.G).toarray()
 
     def add_new_nodes(self, config, new_nodes_prediction):
         if len(self.G) == 1:
@@ -109,7 +111,8 @@ class growing_graph:
                 else None
             )
 
-            W = self.G.adjacency_matrix().toarray()
+            W = nx.adjacency_matrix(self.G).toarray()
+            W = torch.tensor(W, dtype=torch.float32)
             for step in range(network_thinking_time):
                 if additive_update:
                     network_state += W.T @ network_state
