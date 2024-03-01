@@ -22,7 +22,7 @@ init_graph, w = graph.generate_initial_graph(
 # visualize the graph and edge weights
 pos = nx.spring_layout(init_graph)
 nx.draw(init_graph, pos, with_labels=True, font_weight="bold")
-print("Weights: ",w)
+print("Weights: ", w)
 # save the graph as a png file
 plt.savefig("graph.png")
 
@@ -42,4 +42,4 @@ new_net_state = graph.propagate_features(
     feature_transformation_model=None,
     persistent_observation=None,
 )
-print("New network state:",new_net_state)
+print("New network state:", new_net_state)

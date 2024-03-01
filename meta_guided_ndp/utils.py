@@ -1,4 +1,6 @@
 import numpy as np
+import torch
+import torchvision
 
 
 def x0_sampling(dist, num_parameters):
@@ -11,5 +13,19 @@ def x0_sampling(dist, num_parameters):
     else:
         raise ValueError("Unknown distribution for x0")
 
+
 def seed_python_numpy_torch_cuda(seed):
     pass
+
+
+def mnist_data_loader():
+    mnist_data = torchvision.datasets.MNIST(
+        root="data",
+        train=True,
+        transform=torchvision.transforms.ToTensor(),
+        download=True,
+    )
+    mnist_loader = torch.utils.data.DataLoader(
+        dataset=mnist_data, batch_size=32, shuffle=True
+    )
+    return mnist_loader

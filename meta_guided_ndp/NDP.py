@@ -41,7 +41,7 @@ class growing_graph:
                     data_rvs=rvs,
                     random_state=rng,
                 ).toarray()  # rows are outbounds, columns are inbounds
-            
+
             np.fill_diagonal(W, 0)
             disjoint_initial_graphs = [
                 e for e in nx.connected_components(nx.from_numpy_array(W))
