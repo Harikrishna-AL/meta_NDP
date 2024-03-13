@@ -66,6 +66,29 @@ class growing_graph:
                 neighbours.append(np.unique(neighbours_idx))
 
         # continue to add new nodes based on prediciton
+        for idx_node in range(len(self.G)):
+            if new_nodes_prediction.shape == ():
+                new_nodes_prediction = new_nodes_prediction.reshape(1)
+
+            if new_nodes_prediction[idx_node]:
+                if len(neighbours) != 0:
+                    self.G.add_node(current_graph_size)
+                    for neighbour in neighbours[idx_node]:
+                        self.G.add_edge(neighbour, len(current_graph_size), weight=1)
+
+                    current_graph_size += 1
+
+                    network_state = np.concatenate(
+                        [
+                            network_state,
+                            np.expand_dims(
+                                np.mean(network_state[neighbours[idx_node]], axis=0),
+                                axis=0,
+                            ),
+                        ]
+                    )
+
+        return self.G, network_state
 
     def mlp(
         self,
