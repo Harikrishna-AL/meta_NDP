@@ -128,9 +128,26 @@ def fitness_functional(config: dict, graph: meta_ndp):
                     graph.G.remove_edges_from(edges_to_prune)
 
             mean_episode_reward = 0
+            if len(G) < config["min_network_size"]:
+                if config["maximize"]:
+                    return len(G) - config["min_network_size"]
+                else:
+                    return config["min_network_size"] - len(G)
+
             for _ in range(config["num_episode_evals"]):
                 # code for MNIST data evaluation
-                continue
+                seed_env_eval = int(
+                    np.random.default_rng(config["env_seed"]).integers(2**32, size=1)[
+                        0
+                    ]
+                )
+                episode_reward = mnist_eval(G, config, seed_env_eval)
+                mean_episode_reward += episode_reward
+
+            mean_reward += mean_episode_reward / config["num_episode_evals"]
+
+        mean_reward /= config["num_growth_evals"]
+        return mean_reward
 
     return fitness
 

@@ -55,7 +55,7 @@ class growing_graph:
 
         return self.G, nx.adjacency_matrix(self.G).toarray()
 
-    def add_new_nodes(self, config, new_nodes_prediction):
+    def add_new_nodes(self, config, new_nodes_prediction, current_graph_size):
         if len(self.G) == 1:
             neighbours = np.array([[0]])
         else:
