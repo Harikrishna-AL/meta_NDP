@@ -1,7 +1,8 @@
 import copy
 
 from NDP import growing_graph as meta_ndp
-from utils import seed_python_numpy_torch_cuda, mnist_data_loader, image_to_patch
+from utils import seed_python_numpy_torch_cuda, mnist_data_loader, image_to_patch, get_dims
+
 import numpy as np
 import torch
 import networkx as nx
@@ -189,5 +190,8 @@ def fitness_functional(config: dict, graph: meta_ndp):
     return fitness
 
 
-def main():
+def main(config: dict):
+    observation_dim,  output_dim = get_dims()
+    config["observation_dim"] = observation_dim
     pass
+

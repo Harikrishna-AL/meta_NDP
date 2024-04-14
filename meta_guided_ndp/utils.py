@@ -47,3 +47,7 @@ def mnist_data_loader():
         dataset=mnist_data, batch_size=32, shuffle=True
     )
     return mnist_loader
+
+
+def get_dims(config):
+    return NotImplementedError
