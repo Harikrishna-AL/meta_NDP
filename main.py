@@ -29,6 +29,7 @@ plt.savefig("graph.png")
 # state of size  4*8
 import numpy as np
 
+
 net_state = np.random.rand(10, 8)
 pair_dict = graph.pair_embeddings(W=w, network_state=net_state, self_link=True)
 # print(pair_dict)

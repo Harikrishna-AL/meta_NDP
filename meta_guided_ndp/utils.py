@@ -15,10 +15,25 @@ def x0_sampling(dist, num_parameters):
 
 
 def seed_python_numpy_torch_cuda(seed):
-    pass
+    if seed is None:
+        return
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
 
 def image_to_patch(image, patch_size):
-    pass
+    image = image.squeeze()
+    image = image.permute(1, 2, 0)
+    image = image.numpy()
+    patches = []
+    for i in range(0, image.shape[0], patch_size):
+        for j in range(0, image.shape[1], patch_size):
+            patches.append(image[i:i+patch_size, j:j+patch_size])
+    return patches
 
 
 def mnist_data_loader():
