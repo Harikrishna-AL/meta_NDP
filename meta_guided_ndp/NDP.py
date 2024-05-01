@@ -117,6 +117,23 @@ class growing_graph:
 
         return torch.nn.Sequential(*layers)
 
+    def rnn(self, input_dim, hidden_dim, num_layers, bias):
+        return torch.nn.RNN(
+            input_size=input_dim,
+            hidden_size=hidden_dim,
+            num_layers=num_layers,
+            bias=bias,
+            nonlinearity="tanh",
+        )
+
+    def lstm(self, input_dim, hidden_dim, num_layers, bias):
+        return torch.nn.LSTM(
+            input_size=input_dim,
+            hidden_size=hidden_dim,
+            num_layers=num_layers,
+            bias=bias,
+        )
+
     def propagate_features(
         self,
         network_state,

@@ -1,4 +1,5 @@
 __pycache__/
 graph.png
+/data
 env/
 meta_guided_ndp/__pycache__/

@@ -25,6 +25,8 @@ def seed_python_numpy_torch_cuda(seed):
     torch.backends.cudnn.benchmark = False
 
 
+
+
 def image_to_patch(image, patch_size):
     image = image.squeeze()
     image = image.permute(1, 2, 0)
@@ -36,7 +38,7 @@ def image_to_patch(image, patch_size):
     return patches
 
 
-def mnist_data_loader():
+def mnist_data_loader(batch_size=32, shuffle=True):
     mnist_data = torchvision.datasets.MNIST(
         root="data",
         train=True,
@@ -44,7 +46,7 @@ def mnist_data_loader():
         download=True,
     )
     mnist_loader = torch.utils.data.DataLoader(
-        dataset=mnist_data, batch_size=32, shuffle=True
+        dataset=mnist_data, batch_size=batch_size, shuffle=shuffle
     )
     return mnist_loader
 
