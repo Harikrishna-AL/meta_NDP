@@ -1,5 +1,7 @@
 import copy
 
+import torch.utils
+
 from NDP import growing_graph as meta_ndp
 from utils import (
     seed_python_numpy_torch_cuda,
@@ -7,6 +9,7 @@ from utils import (
     image_to_patch,
     get_dims,
 )
+from optimizer import CMAES
 
 import numpy as np
 import torch
@@ -199,3 +202,60 @@ def train(config: dict):
     observation_dim, output_dim = get_dims()
     config["observation_dim"] = observation_dim
     config["action_dim"] = output_dim
+
+    config["initial_network_size"] = observation_dim + output_dim + config["extra_nodes"]
+    config["min_network_size"] = observation_dim + output_dim
+
+    config["num_params_coevolve_initial_size"] = config["node_embedding_size"] if config["coevolve_initial_embd"] else 0
+
+    config["input_size_growth_model"] = config["node_embedding_size"] * 2 if config["node_pairs_based_growth"] else config["node_embedding_size"]
+    mlp_growth_model = meta_ndp.mlp(
+        input_dim=config["input_size_growth_model"],
+        output_dim=1,
+        hidden_layers_dims=config["mlp_growth_hidden_layers_dims"],
+        last_layer_activated=config["growth_model_last_layer_activated"],
+        activation=torch.nn.Tanh(),
+        bias=config["growth_model_bias"],
+    )
+    config["num_params_growth_model"] = torch.nn.utils.parameters_to_vector(mlp_growth_model.parameters()).detach().numpy().shape[0]
+
+    if config["node_based_growth"] and not config["binary_connectivity"]:
+        output_dim_mlp = 1 if config["undirected"] else 2
+        mlp_weight_values = meta_ndp.mlp(
+            input_dim=config["node_embedding_size"] * 2,
+            output_dim=output_dim_mlp,
+            hidden_layers_dims=config["mlp_weight_hidden_layers_dims"],
+            last_layer_activated=config["weight_model_last_layer_activated"],
+            activation=torch.nn.Tanh(),
+            bias=config["weight_model_bias"],
+        )
+        config["num_params_mlp_weight_values"] = torch.nn.utils.parameters_to_vector(mlp_weight_values.parameters()).detach().numpy().shape[0]
+    else:
+        config["num_params_mlp_weight_values"] = 0
+
+    config["num_trainable_parameters"] = (
+        config["num_params_coevolve_initial_size"] + config["num_params_growth_model"] + config["num_params_mlp_weight_values"]
+    )
+
+    print("Number of trainable parameters: ", config["num_trainable_parameters"])
+
+    if config["shared_initial_graph_bool"]:
+        config["shared_initial_graph"] = meta_ndp.generate_initial_graph(
+            network_size=config["initial_network_size"],
+            sparsity=config["initial_sparsity"],
+            binary_connectivity=config["binary_connectivity"],
+            undirected=config["undirected"],
+            seed=config["seed"],
+        )
+
+    if not config["coevolve_initial_embd"] and config["shared_initial_embd"] and config["initiall_embeddings_random"]:
+        config["initial_network_state"] = np.random.default_rng(config["seed"]).uniform(
+            -1, +1, (config["initial_network_size"], config["node_embedding_size"])
+        )
+
+    fitness = fitness_functional(config, meta_ndp)
+
+    if config["optimizer"] == "CMAES":
+        solution_best, solution_centroid, early_stopping_executed, logger = CMAES(config, fitness)
+
+    return solution_best, solution_centroid, early_stopping_executed, logger
