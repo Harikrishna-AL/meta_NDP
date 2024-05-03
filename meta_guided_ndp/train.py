@@ -203,12 +203,20 @@ def train(config: dict):
     config["observation_dim"] = observation_dim
     config["action_dim"] = output_dim
 
-    config["initial_network_size"] = observation_dim + output_dim + config["extra_nodes"]
+    config["initial_network_size"] = (
+        observation_dim + output_dim + config["extra_nodes"]
+    )
     config["min_network_size"] = observation_dim + output_dim
 
-    config["num_params_coevolve_initial_size"] = config["node_embedding_size"] if config["coevolve_initial_embd"] else 0
+    config["num_params_coevolve_initial_size"] = (
+        config["node_embedding_size"] if config["coevolve_initial_embd"] else 0
+    )
 
-    config["input_size_growth_model"] = config["node_embedding_size"] * 2 if config["node_pairs_based_growth"] else config["node_embedding_size"]
+    config["input_size_growth_model"] = (
+        config["node_embedding_size"] * 2
+        if config["node_pairs_based_growth"]
+        else config["node_embedding_size"]
+    )
     mlp_growth_model = meta_ndp.mlp(
         input_dim=config["input_size_growth_model"],
         output_dim=1,
@@ -217,7 +225,12 @@ def train(config: dict):
         activation=torch.nn.Tanh(),
         bias=config["growth_model_bias"],
     )
-    config["num_params_growth_model"] = torch.nn.utils.parameters_to_vector(mlp_growth_model.parameters()).detach().numpy().shape[0]
+    config["num_params_growth_model"] = (
+        torch.nn.utils.parameters_to_vector(mlp_growth_model.parameters())
+        .detach()
+        .numpy()
+        .shape[0]
+    )
 
     if config["node_based_growth"] and not config["binary_connectivity"]:
         output_dim_mlp = 1 if config["undirected"] else 2
@@ -229,12 +242,19 @@ def train(config: dict):
             activation=torch.nn.Tanh(),
             bias=config["weight_model_bias"],
         )
-        config["num_params_mlp_weight_values"] = torch.nn.utils.parameters_to_vector(mlp_weight_values.parameters()).detach().numpy().shape[0]
+        config["num_params_mlp_weight_values"] = (
+            torch.nn.utils.parameters_to_vector(mlp_weight_values.parameters())
+            .detach()
+            .numpy()
+            .shape[0]
+        )
     else:
         config["num_params_mlp_weight_values"] = 0
 
     config["num_trainable_parameters"] = (
-        config["num_params_coevolve_initial_size"] + config["num_params_growth_model"] + config["num_params_mlp_weight_values"]
+        config["num_params_coevolve_initial_size"]
+        + config["num_params_growth_model"]
+        + config["num_params_mlp_weight_values"]
     )
 
     print("Number of trainable parameters: ", config["num_trainable_parameters"])
@@ -248,7 +268,11 @@ def train(config: dict):
             seed=config["seed"],
         )
 
-    if not config["coevolve_initial_embd"] and config["shared_initial_embd"] and config["initiall_embeddings_random"]:
+    if (
+        not config["coevolve_initial_embd"]
+        and config["shared_initial_embd"]
+        and config["initiall_embeddings_random"]
+    ):
         config["initial_network_state"] = np.random.default_rng(config["seed"]).uniform(
             -1, +1, (config["initial_network_size"], config["node_embedding_size"])
         )
@@ -256,6 +280,8 @@ def train(config: dict):
     fitness = fitness_functional(config, meta_ndp)
 
     if config["optimizer"] == "CMAES":
-        solution_best, solution_centroid, early_stopping_executed, logger = CMAES(config, fitness)
+        solution_best, solution_centroid, early_stopping_executed, logger = CMAES(
+            config, fitness
+        )
 
     return solution_best, solution_centroid, early_stopping_executed, logger

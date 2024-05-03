@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import torch.nn as nn
 import torchvision
 
 
@@ -25,8 +26,6 @@ def seed_python_numpy_torch_cuda(seed):
     torch.backends.cudnn.benchmark = False
 
 
-
-
 def image_to_patch(image, patch_size):
     image = image.squeeze()
     image = image.permute(1, 2, 0)
@@ -34,7 +33,7 @@ def image_to_patch(image, patch_size):
     patches = []
     for i in range(0, image.shape[0], patch_size):
         for j in range(0, image.shape[1], patch_size):
-            patches.append(image[i:i+patch_size, j:j+patch_size])
+            patches.append(image[i : i + patch_size, j : j + patch_size])
     return patches
 
 
@@ -53,3 +52,18 @@ def mnist_data_loader(batch_size=32, shuffle=True):
 
 def get_dims(config):
     return NotImplementedError
+
+
+def get_feat(image, **kwargs):
+    net = nn.Sequential(
+        nn.Conv2d(1, 8, 3, 1),
+        nn.MaxPool2d(2, 2),
+        nn.Conv2d(8, 16, 3, 1),
+        nn.MaxPool2d(2, 2),
+        nn.Flatten(),
+        nn.Linear(5 * 5 * 16, 64),
+    )
+
+    net.parameters = kwargs["cnn_params"]
+
+    return net(image)
