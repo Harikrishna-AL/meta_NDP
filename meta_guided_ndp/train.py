@@ -16,6 +16,16 @@ import torch
 import networkx as nx
 from tqdm import tqdm
 import torch.nn as nn
+import logging
+
+
+logging.basicConfig(
+    filename="newfile.log", format="%(asctime)s %(message)s", filemode="w"
+)
+
+# Creating an object
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
 
 
 def mnist_eval(G: nx.Graph, config: dict, seed: int = None):
@@ -59,6 +69,8 @@ def mnist_eval(G: nx.Graph, config: dict, seed: int = None):
 
 
 def fitness_functional(config: dict, graph: meta_ndp):
+    global fitness
+
     def fitness(evolved_parameters: np.array):
         mean_reward = 0
 
@@ -70,8 +82,8 @@ def fitness_functional(config: dict, graph: meta_ndp):
 
             # init graph
             G = graph.generate_initial_graph(
-                network_size=config["network_size"],
-                sparsity=config["sparsity"],
+                network_size=config["initial_network_size"],
+                sparsity=config["initial_sparsity"],
                 binary_connectivity=config["binary_connectivity"],
                 undirected=config["undirected"],
                 seed=config["seed"],
@@ -183,9 +195,7 @@ def fitness_functional(config: dict, graph: meta_ndp):
             for _ in range(config["num_episode_evals"]):
                 # code for MNIST data evaluation
                 seed_env_eval = int(
-                    np.random.default_rng(config["env_seed"]).integers(2**32, size=1)[
-                        0
-                    ]
+                    np.random.default_rng(config["env_seed"]).integers(2**32, size=1)[0]
                 )
                 episode_reward = mnist_eval(G, config, seed_env_eval)
                 mean_episode_reward += episode_reward
@@ -199,7 +209,9 @@ def fitness_functional(config: dict, graph: meta_ndp):
 
 
 def train(config: dict):
-    observation_dim, output_dim = get_dims()
+    observation_dim, output_dim = get_dims(type=config["type"])
+    meta_ndp1 = meta_ndp(nx.Graph(), 10, observation_dim + 100 + output_dim, {})
+
     config["observation_dim"] = observation_dim
     config["action_dim"] = output_dim
 
@@ -217,7 +229,7 @@ def train(config: dict):
         if config["node_pairs_based_growth"]
         else config["node_embedding_size"]
     )
-    mlp_growth_model = meta_ndp.mlp(
+    mlp_growth_model = meta_ndp1.mlp(
         input_dim=config["input_size_growth_model"],
         output_dim=1,
         hidden_layers_dims=config["mlp_growth_hidden_layers_dims"],
@@ -231,10 +243,11 @@ def train(config: dict):
         .numpy()
         .shape[0]
     )
-
+    logging.info(f"GROWTH MODEL NUM PARAMS: {config['num_params_growth_model']}")
+    # print("GROWTH MODEL NUM PARAMS: ", config["num_params_growth_model"])
     if config["node_based_growth"] and not config["binary_connectivity"]:
         output_dim_mlp = 1 if config["undirected"] else 2
-        mlp_weight_values = meta_ndp.mlp(
+        mlp_weight_values = meta_ndp1.mlp(
             input_dim=config["node_embedding_size"] * 2,
             output_dim=output_dim_mlp,
             hidden_layers_dims=config["mlp_weight_hidden_layers_dims"],
@@ -260,7 +273,7 @@ def train(config: dict):
     print("Number of trainable parameters: ", config["num_trainable_parameters"])
 
     if config["shared_initial_graph_bool"]:
-        config["shared_initial_graph"] = meta_ndp.generate_initial_graph(
+        config["shared_initial_graph"] = meta_ndp1.generate_initial_graph(
             network_size=config["initial_network_size"],
             sparsity=config["initial_sparsity"],
             binary_connectivity=config["binary_connectivity"],
@@ -277,7 +290,7 @@ def train(config: dict):
             -1, +1, (config["initial_network_size"], config["node_embedding_size"])
         )
 
-    fitness = fitness_functional(config, meta_ndp)
+    fitness = fitness_functional(config, meta_ndp1)
 
     if config["optimizer"] == "CMAES":
         solution_best, solution_centroid, early_stopping_executed, logger = CMAES(

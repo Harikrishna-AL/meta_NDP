@@ -8,7 +8,7 @@ from multiprocessing import Pool
 
 
 def CMAES(config, fitness):
-    num_parameters = config["num_parameters"]
+    num_parameters = config["num_trainable_parameters"]
     x0 = x0_sampling(config["x0_dist"], num_parameters)
     es = cma.CMAEvolutionStrategy(
         x0,

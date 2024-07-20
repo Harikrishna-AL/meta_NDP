@@ -50,8 +50,9 @@ def mnist_data_loader(batch_size=32, shuffle=True):
     return mnist_loader
 
 
-def get_dims(config):
-    return NotImplementedError
+def get_dims(type):
+    if "mnist" in type.lower():
+        return 28 * 28, 10
 
 
 def get_feat(image, **kwargs):

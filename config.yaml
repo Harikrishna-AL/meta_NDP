@@ -8,17 +8,18 @@ notes experiment: null
 device: 0
 return_loss: 0
 environment: CartPole-v1
-
+type: mnist
 #########
 # Model #
 #########
-
+shared_initial_graph_bool: True
 # Growth mode
 node_based_growth: True
 node_pairs_based_growth: False
 edge_based_growth: False
 probabilistic_growth: False
 coevolve_initial_embeddings: True
+coevolve_initial_embd: True
 
 # Graph model options
 undirected: True
@@ -54,14 +55,14 @@ balanced_weights: False
 # MLPs parameters
 growth_model_last_layer_activated: True
 transform_model_last_layer_activated: True # If true embeddings are bounded [-1,1]
-mlp_weight_values_last_layer_activated: True # If true graph weights are bounded [-1,1]
+weight_model_last_layer_activated: True # If true graph weights are bounded [-1,1]
 
 mlp_growth_hidden_layers_dims: [5]
 mlp_embedding_transform_hidden_layers_dims: [5]
-mlp_weight_values_hidden_layers_dims: [5]
+mlp_weight_hidden_layers_dims: [5]
 
 growth_model_bias: True
-mlp_weight_values_bias: True
+weight_model_bias: True
 transform_model_bias: True
 
 recurrent_activation_function: "tanh" #  null
@@ -78,8 +79,8 @@ CMA_elitist: True
 minstd: 0.005
 x0_dist: U[-1,1]
 checkpoint_id: null
-nb_episode_evals: 10 # accounts for env stochasticity
-nb_growth_evals: 1 # accounts for growth process stochasticity
+num_episode_evals: 10 # accounts for env stochasticity
+num_growth_evals: 1 # accounts for growth process stochasticity
 early_stopping: True
 early_stopping_conditions: { "generation": 1000, "objective_value": -300 } # (generations, objective_value)
 flattening_stopping: False

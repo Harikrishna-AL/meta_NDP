@@ -6,16 +6,24 @@ import matplotlib.pyplot as plt
 from meta_guided_ndp.utils import get_feat
 import numpy as np
 import pathlib
+import os
+
 
 def main(config):
-    pathlib.Path(config["_path"]).mkdir(parents=True, exist_ok=False)
-
-    config["seed"] = np.random.randint(10**7) if config["seed"] is None else config["seed"]
+    # pathlib.Path(config["_path"]).mkdir(parents=True, exist_ok=False)
+    path = "./NDP_results"
+    if not os.path.exists(path):
+        os.makedirs(path)
+    config["seed"] = (
+        np.random.randint(10**7) if config["seed"] is None else config["seed"]
+    )
     utils.seed_python_numpy_torch_cuda(config["seed"])
     print("Seed: ", config["seed"])
     print("Config: ", config)
 
-    solution_best, solution_centroid, early_stopping_executed, logger_df = train.train(config = config)
+    solution_best, solution_centroid, early_stopping_executed, logger_df = train.train(
+        config=config
+    )
     if not early_stopping_executed:
         print(f"\n Saving models and config file  - Run ID {config['id']}")
         print(f"\n Final model has {config['num_trainable_params']} parameters")
@@ -41,13 +49,13 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
     with open(args.config, "r") as f:
-        config = yaml.safe_load(f, Loader=yaml.FullLoader)
+        config = yaml.safe_load(f)
 
     config["id"] = uuid.uuid1()
     print("Model ID: ", config["id"])
     path = "saved_models/" + str(config["id"]) + ".pth"
     config["output_path"] = path
 
-    print("Config: ", config)
+    # print("Config: ", config)
 
     main(config=config)

@@ -165,9 +165,9 @@ class growing_graph:
                     network_state = activation_function(network_state)
 
                 if persistent_observation is not None:
-                    network_state[
-                        0 : persistent_observation.shape[0]
-                    ] = persistent_observation
+                    network_state[0 : persistent_observation.shape[0]] = (
+                        persistent_observation
+                    )
 
         return network_state.detach().numpy()
 
