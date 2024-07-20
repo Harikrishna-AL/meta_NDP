@@ -17,7 +17,7 @@ import networkx as nx
 from tqdm import tqdm
 import torch.nn as nn
 import logging
-
+import matplotlib.pyplot as plt
 
 logging.basicConfig(
     filename="newfile.log", format="%(asctime)s %(message)s", filemode="w"
@@ -81,7 +81,8 @@ def fitness_functional(config: dict, graph: meta_ndp):
             seed_python_numpy_torch_cuda(config["seed"])
 
             # init graph
-            G = graph.generate_initial_graph(
+            print()
+            G, w = graph.generate_initial_graph(
                 network_size=config["initial_network_size"],
                 sparsity=config["initial_sparsity"],
                 binary_connectivity=config["binary_connectivity"],
@@ -89,6 +90,9 @@ def fitness_functional(config: dict, graph: meta_ndp):
                 seed=config["seed"],
             )
 
+            pos = nx.spring_layout(G)
+            nx.draw(G, pos, with_labels=True, font_weight="bold")
+            plt.savefig("graph_train.png")
             # init network state
             if config["coevolve_initial_embd"]:
                 initial_network_state = np.expand_dims(
@@ -289,6 +293,7 @@ def train(config: dict):
         config["initial_network_state"] = np.random.default_rng(config["seed"]).uniform(
             -1, +1, (config["initial_network_size"], config["node_embedding_size"])
         )
+    logging.info(f"Initial Network Size: {config['initial_network_size']}")
 
     fitness = fitness_functional(config, meta_ndp1)
 

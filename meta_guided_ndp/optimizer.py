@@ -43,6 +43,7 @@ def CMAES(config, fitness):
             X = es.ask()
             if num_cores > 1:
                 with Pool(num_cores) as pool:
+                    print("X shape: ", len(X))
                     fitness_values = pool.map_async(fitness, X).get()
 
             else:
