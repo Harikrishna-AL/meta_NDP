@@ -5,3 +5,6 @@ env/
 meta_guided_ndp/__pycache__/
 newfile.log
 graph_train.png
+notebooks/
+*.ipynb
+*.png

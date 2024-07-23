@@ -81,7 +81,6 @@ def fitness_functional(config: dict, graph: meta_ndp):
             seed_python_numpy_torch_cuda(config["seed"])
 
             # init graph
-            print()
             G, w = graph.generate_initial_graph(
                 network_size=config["initial_network_size"],
                 sparsity=config["initial_sparsity"],
@@ -94,9 +93,10 @@ def fitness_functional(config: dict, graph: meta_ndp):
             nx.draw(G, pos, with_labels=True, font_weight="bold")
             plt.savefig("graph_train.png")
             # init network state
+            print("Node embedding size: ", config["node_embedding_size"])
             if config["coevolve_initial_embd"]:
                 initial_network_state = np.expand_dims(
-                    evolved_parameters[:, config["node_embedding_size"]], axis=0
+                    evolved_parameters[: config["node_embedding_size"]], axis=0
                 )
             elif config["shared_initial_embd"] and config["random_initial_embd"]:
                 initial_network_state = config["initial_network_state"]
@@ -107,7 +107,7 @@ def fitness_functional(config: dict, graph: meta_ndp):
 
             # create growth decision network
             mlp_growth_model = graph.mlp(
-                input_dim=config["node_size _growth_model"],
+                input_dim=config["input_size_growth_model"],
                 output_dim=1,
                 hidden_layers_dims=config["mlp_growth_hidden_layers_dims"],
                 last_layer_activated=config["growth_model_last_layer_activated"],
@@ -125,8 +125,8 @@ def fitness_functional(config: dict, graph: meta_ndp):
             )
 
             i1 = config["node_embedding_size"] if config["coevolve_initial_embd"] else 0
-            i2 = i1 + config["params_growth_model"]
-            i3 = i2 + config["params_weight_model"]
+            i2 = i1 + config["num_params_growth_model"]
+            i3 = i2 + config["num_params_mlp_weight_values"]
 
             torch.nn.utils.vector_to_parameters(
                 torch.tensor(
