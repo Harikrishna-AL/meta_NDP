@@ -71,7 +71,8 @@ class GraphNCA(nn.Module):
         features, edge_features = self.global_atten(nodes, edges)
         update = self.update_net(features)
         nodes = nodes + update
-        return nodes
+        # return nodes by removing the batch dimension
+        return nodes.squeeze(0)
 
     def replicate(self, x, edge_dict):
         num_nodes = x.shape[0]
