@@ -1,4 +1,4 @@
-from graph_attention import EAGAttention
+from growing_nn.graph.graph_attention import EAGAttention
 
 import random
 from typing import Optional
@@ -39,7 +39,7 @@ class GraphNCA(nn.Module):
             self.num_operations, self.num_activations, self.num_hidden_channels
         )
 
-        self.num_nodes = self.graph.x.shape[0]
+        self.num_nodes = self.graph.to_data().x.shape[0]
 
         self.perception_net = GCNConv(
             self.num_channels, self.num_channels * 3, bias=False
@@ -61,12 +61,17 @@ class GraphNCA(nn.Module):
     ):
         return num_operations + num_activations + num_hidden_channels + 2
 
-    def forward(self, x, edge_index):
+    def forward(self, data):
         # features = self.perception_net(x, edge_index)
-        features, edge_features = self.global_atten(x.nodes, x.edge_attr)
+        nodes = data.x
+        edges = data.edge_attr
+        # if nodes have 3 dimensions
+        if nodes.dim() != 3:
+            nodes = nodes.unsqueeze(0)
+        features, edge_features = self.global_atten(nodes, edges)
         update = self.update_net(features)
-        x = x + update
-        return x
+        nodes = nodes + update
+        return nodes
 
     def replicate(self, x, edge_dict):
         num_nodes = x.shape[0]
@@ -110,7 +115,7 @@ class GraphNCA(nn.Module):
         new_graph = graph.copy()
         for i in range(num_iterations):
             data = new_graph.to_data()
-            x = self.forward(data.x, data.edge_index)
+            x = self.forward(data)
 
             if replicate_interval is not None:
                 if i % replicate_interval == 0:
