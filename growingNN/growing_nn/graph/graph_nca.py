@@ -48,7 +48,7 @@ class GraphNCA(nn.Module):
             num_nodes=self.num_nodes, num_channels=self.num_channels
         )
         self.update_net = nn.Sequential(
-            nn.Linear(self.num_channels * 3, 32),
+            nn.Linear(self.num_channels, 32),
             nn.ReLU(),
             nn.Linear(32, self.num_channels),
         )
