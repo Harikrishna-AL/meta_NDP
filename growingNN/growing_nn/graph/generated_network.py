@@ -31,53 +31,34 @@ class GeneratedNetwork(MessagePassing):
 
         self.topological_order = self.graph.topological_sort()
 
-    def compute_propagation(self, x, edge_index):
-        # Step 4-5: Start propagating messages.
+    def compute_propagation(self, x, edge_index, edge_attr):
+        # Initialize the output tensor with the value channel of x.
+        out = x[:, self.value_channel : self.value_channel + 1]
 
-        out = (
-            torch.ones(
-                x[:, self.value_channel : self.value_channel + 1].size(),
-                device=x.device,
-            )
-            * x[:, self.value_channel : self.value_channel + 1]
-        )
-        output_node_idx = self.graph.num_input_nodes
-        count = 0
-        for node in self.topological_order[self.graph.num_input_nodes :]:
-            operation_logits = x[
-                node, self.operation_channels[0] : self.operation_channels[1]
-            ]
-            operations_dist = td.one_hot_categorical.OneHotCategorical(
-                logits=operation_logits
-            )
+        # Process nodes in topological order, starting from the nodes after the input nodes.
+        for node in self.topological_order[self.graph.num_input_nodes:]:
+            operation_logits = x[node, self.operation_channels[0] : self.operation_channels[1]]
+            operations_dist = td.OneHotCategorical(logits=operation_logits)
             operation_probs = operations_dist.sample().squeeze()
 
-            if count < output_node_idx:
-                activation_logits = x[
-                    node, self.activation_channels[0] : self.activation_channels[1]
-                ]
-
-                activations_dist = td.one_hot_categorical.OneHotCategorical(
-                    logits=activation_logits
-                )
-                activation_probs = activations_dist.sample().squeeze()
-            else:
-                activation_probs = torch.zeros((self.num_activations,), device=x.device)
-                activation_probs[0] = 1.0
+            activation_logits = x[node, self.activation_channels[0] : self.activation_channels[1]]
+            activations_dist = td.OneHotCategorical(logits=activation_logits)
+            activation_probs = activations_dist.sample().squeeze()
 
             _, edges, _, _ = k_hop_subgraph(node, 1, edge_index)
 
             node_propagate = self.propagate(
                 edges,
                 x=out,
+                edge_weight=edge_attr[edges[0], edges[1]],  # Use edge weights
                 operation_probs=operation_probs,
                 activation_probs=activation_probs,
             )
             out[node] = out[node] + node_propagate[node] - out[node]
-            count += 1
+
         return out
 
-    def message(self, x_i, x_j, operation_probs, activation_probs):
+    def message(self, x_i, x_j, edge_weight, operation_probs, activation_probs):
         # x_i has shape [E, out_channels]
         # x_j has shape [E, out_channels]
 
@@ -99,7 +80,7 @@ class GeneratedNetwork(MessagePassing):
         )  # [num_activations, E, out_channels]
         activation_outputs = torch.sum(activation_outputs, dim=0)  # [E, out_channels]
 
-        return activation_outputs
+        return activation_outputs * edge_weight.view(-1, 1)  # Weight messages by edge weight
 
     def forward(self, inputs=None):
         data = self.graph.to_data()
@@ -108,7 +89,7 @@ class GeneratedNetwork(MessagePassing):
                 data.x[: self.graph.num_input_nodes][:, 0] = (
                     data.x[: self.graph.num_input_nodes][:, 0] * 0.0 + inputs
                 )
-        nodes = self.compute_propagation(data.x, data.edge_index)
+        nodes = self.compute_propagation(data.x, data.edge_index, data.edge_attr)
         return nodes[self.graph.output_nodes], nodes
 
     def batch_forward(self, inputs):
