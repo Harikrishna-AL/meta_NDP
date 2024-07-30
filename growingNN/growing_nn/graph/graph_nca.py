@@ -66,13 +66,18 @@ class GraphNCA(nn.Module):
         nodes = data.x
         edges = data.edge_attr
         # if nodes have 3 dimensions
+        # print(nodes.shape, edges.shape)
         if nodes.dim() != 3:
             nodes = nodes.unsqueeze(0)
         features, edge_features = self.global_atten(nodes, edges)
+        new_edge_mat = edge_features.clone()
+        new_edge_mat = new_edge_mat.squeeze(0).detach().cpu().numpy()
         update = self.update_net(features)
-        nodes = nodes + update
+        nodes = nodes + update.clone()
         # return nodes by removing the batch dimension
-        return nodes.squeeze(0)
+        # print(edge_features)
+        # new_edge_mat = edges
+        return nodes.squeeze(0), new_edge_mat
 
     def replicate(self, x, edge_dict):
         num_nodes = x.shape[0]
@@ -116,7 +121,7 @@ class GraphNCA(nn.Module):
         new_graph = graph.copy()
         for i in range(num_iterations):
             data = new_graph.to_data()
-            x = self.forward(data)
+            x, new_edge_mat = self.forward(data)
 
             if replicate_interval is not None:
                 if i % replicate_interval == 0:
@@ -126,5 +131,5 @@ class GraphNCA(nn.Module):
                     )
                     if children is not None:
                         new_graph.add_nodes(children)
-                        new_graph.add_edges(new_edge_dict)
+                        new_graph.add_edges(new_edge_dict, new_edge_mat)
         return new_graph

@@ -7,14 +7,16 @@ import torch
 import torch_geometric
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from torch_geometric.data import Data
+import math
 
 from growing_nn.graph.generated_network import GeneratedNetwork
 
 
 class DirectedGraph:
-    def __init__(self, nodes, edge_dict, num_input_nodes, num_output_nodes):
+    def __init__(self, nodes, edge_dict, num_input_nodes, num_output_nodes, edge_mat):
         self.nodes = nodes
         self.edge_dict = edge_dict
+        self.edge_mat = edge_mat
         self.num_input_nodes = num_input_nodes
         self.num_output_nodes = num_output_nodes
 
@@ -26,7 +28,8 @@ class DirectedGraph:
             ]
         )
 
-    def add_edges(self, new_edges):
+    def add_edges(self, new_edges, new_edge_mat):
+        self.edge_mat = new_edge_mat
         for node in new_edges:
             if node not in self.edge_dict:
                 self.edge_dict[node] = []
@@ -34,6 +37,31 @@ class DirectedGraph:
             for d in destinations:
                 if d not in self.edge_dict[node]:
                     self.edge_dict[node].append(d)
+        # add edges to edge_mat
+        # for node in new_edges:
+        #     destinations = new_edges[node]
+        #     for d in destinations:
+        #         self.edge_mat[node, d] = 1
+        # print(self.edge_mat)
+        new_mat_size = len(self.nodes)
+        new_edge_mat = np.zeros((new_mat_size, new_mat_size))   
+        # add older edges to new edge matrix
+        # print(self.edge_mat.shape)
+        # print(self.edge_mat)
+        for i in range(self.edge_mat.shape[0]):
+            for j in range(self.edge_mat.shape[1]):
+                # print(self.edge_mat[i, j])
+                new_edge_mat[i, j] = self.edge_mat[i, j]
+                
+        for node in new_edges:
+            destinations = new_edges[node]
+            for d in destinations:
+                new_edge_mat[node, d] = 1
+            
+        # #return as numpy
+        # print(self.edge_mat)
+        # print(new_edges)
+        self.edge_mat = np.array(new_edge_mat)
 
     def add_nodes(self, nodes):
         self.nodes = torch.vstack((self.nodes, nodes))
@@ -41,13 +69,14 @@ class DirectedGraph:
     def to_data(self):
         edges = []
         num_nodes = self.nodes.size(0)
-        adj_matrix = torch.zeros((num_nodes, num_nodes), device=self.nodes.device)
+        # adj_matrix = torch.zeros((num_nodes, num_nodes), device=self.nodes.device)
+        adj_matrix = self.edge_mat
 
         for node in self.edge_dict:
             destinations = self.edge_dict[node]
             for d in destinations:
                 edges.append([node, d])
-                adj_matrix[node, d] = 1
+                # adj_matrix[node, d] = 1
 
         edges = torch.tensor(edges).long().t().contiguous().to(self.nodes.device)
 
@@ -106,6 +135,18 @@ class DirectedGraph:
             for i in self.output_nodes:
                 node_colors[i] = "red"
 
+        #plot the edge values too using edge_mat
+        edge_mat = data.edge_attr
+        # print(edge_mat)
+        edge_labels = {}
+        n = int(math.sqrt(edge_mat.size))
+        for i in range(n):
+            for j in range(n):
+                if edge_mat[i, j] != 0:
+                    edge_labels[(i, j)] = str(edge_mat[i, j].item())
+
+
+        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
         nx.draw_networkx_nodes(G, pos, node_color=node_colors)
         nx.draw_networkx_edges(G, pos)
         nx.draw_networkx_labels(G, pos, labels=labels)
@@ -123,6 +164,7 @@ class DirectedGraph:
     def copy(self):
         nodes = self.nodes * torch.ones(self.nodes.size(), device=self.nodes.device)
         edge_dict = copy.deepcopy(self.edge_dict)
+        edge_mat = self.edge_mat
         return DirectedGraph(
-            nodes, edge_dict, self.num_input_nodes, self.num_output_nodes
+            nodes, edge_dict, self.num_input_nodes, self.num_output_nodes, edge_mat
         )

@@ -32,7 +32,7 @@ class GeneratedNetwork(MessagePassing):
         self.topological_order = self.graph.topological_sort()
 
     def compute_propagation(self, x, edge_index, edge_attr):
-        # Initialize the output tensor with the value channel of x.
+    # Initialize the output tensor with the value channel of x.
         out = x[:, self.value_channel : self.value_channel + 1]
 
         # Process nodes in topological order, starting from the nodes after the input nodes.
@@ -58,6 +58,7 @@ class GeneratedNetwork(MessagePassing):
 
         return out
 
+
     def message(self, x_i, x_j, edge_weight, operation_probs, activation_probs):
         # x_i has shape [E, out_channels]
         # x_j has shape [E, out_channels]
@@ -80,7 +81,22 @@ class GeneratedNetwork(MessagePassing):
         )  # [num_activations, E, out_channels]
         activation_outputs = torch.sum(activation_outputs, dim=0)  # [E, out_channels]
 
+        # Debug prints
+        # print(f"activation_outputs type: {type(activation_outputs)}")
+        # print(f"activation_outputs shape: {activation_outputs.shape}")
+        # print(f"edge_weight type: {type(edge_weight)}")
+        # print(f"edge_weight shape: {edge_weight.shape}")
+
+        # Ensure edge_weight is a torch.Tensor
+        if not isinstance(edge_weight, torch.Tensor):
+            edge_weight = torch.tensor(edge_weight)
+
+        # Ensure activation_outputs is a torch.Tensor
+        if not isinstance(activation_outputs, torch.Tensor):
+            activation_outputs = torch.tensor(activation_outputs)
+
         return activation_outputs * edge_weight.view(-1, 1)  # Weight messages by edge weight
+
 
     def forward(self, inputs=None):
         data = self.graph.to_data()
