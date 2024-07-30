@@ -1,15 +1,11 @@
 from growing_nn.graph.graph_attention import EAGAttention
-
 import random
 from typing import Optional
-
 import torch
 import torch.nn as nn
 from torch.distributions.bernoulli import Bernoulli
 from torch_geometric.nn import GCNConv
-
-# from growing_nn.graph.directed_graph import DirectedGraph
-
+import numpy as np
 
 class GraphNCA(nn.Module):
     def __init__(self, graph, num_hidden_channels: int = 16, max_replications: int = 2):
@@ -17,30 +13,22 @@ class GraphNCA(nn.Module):
         self.graph = graph
         self.num_input_nodes = self.graph.num_input_nodes
         self.num_output_nodes = self.graph.num_output_nodes
-
         self.input_nodes = self.graph.input_nodes
         self.output_nodes = self.graph.output_nodes
-
         self.value_idx = 0
         self.replication_idx = 1
-
         self.operations = [torch.add, torch.subtract, torch.multiply]
         self.activations = [torch.relu, torch.tanh]
-
         self.replicated_cells = []
         self.num_operations = len(self.operations)
         self.num_activations = len(self.activations)
-
         self.operation_channels = [2, 4]
         self.activation_channels = [5, 6]
-
         self.num_hidden_channels = num_hidden_channels
         self.num_channels = self.get_number_of_channels(
             self.num_operations, self.num_activations, self.num_hidden_channels
         )
-
         self.num_nodes = self.graph.to_data().x.shape[0]
-
         self.perception_net = GCNConv(
             self.num_channels, self.num_channels * 3, bias=False
         )
@@ -62,29 +50,29 @@ class GraphNCA(nn.Module):
         return num_operations + num_activations + num_hidden_channels + 2
 
     def forward(self, data):
-        # features = self.perception_net(x, edge_index)
-        nodes = data.x
-        edges = data.edge_attr
-        # if nodes have 3 dimensions
-        # print(nodes.shape, edges.shape)
+        nodes = data.x.clone().detach().requires_grad_(True)
+        if isinstance(data.edge_attr, np.ndarray):
+            edges = torch.tensor(data.edge_attr, dtype=torch.float32).clone().detach().cpu().numpy()
+        else:
+            edges = data.edge_attr.clone().detach().cpu().numpy()
+
         if nodes.dim() != 3:
             nodes = nodes.unsqueeze(0)
+
         features, edge_features = self.global_atten(nodes, edges)
-        new_edge_mat = edge_features.clone()
-        new_edge_mat = new_edge_mat.squeeze(0).detach().cpu().numpy()
+
         update = self.update_net(features)
-        nodes = nodes + update.clone()
-        # return nodes by removing the batch dimension
-        # print(edge_features)
-        # new_edge_mat = edges
+        nodes = nodes + update
+
+        # Convert edge_features to numpy array
+        new_edge_mat = edge_features.squeeze(0).clone().detach().cpu().numpy()
+
         return nodes.squeeze(0), new_edge_mat
+
 
     def replicate(self, x, edge_dict):
         num_nodes = x.shape[0]
         current_count = num_nodes
-
-        # ready_to_replicate = x[:, self.replication_idx] > replication_threshold
-        # ready_to_replicate = ready_to_replicate.squeeze().detach().cpu().numpy()
         dist = Bernoulli(logits=x[:, self.replication_idx])
         ready_to_replicate = dist.sample().squeeze()
         ready_to_replicate_indices = [
@@ -93,36 +81,23 @@ class GraphNCA(nn.Module):
             if ready_to_replicate[i] == 1.0 and i not in self.output_nodes
         ]
         ready_to_replicate_indices = ready_to_replicate_indices[: self.max_replications]
-
         if len(ready_to_replicate_indices) > 0:
-
             children = self.replication_network(x[ready_to_replicate_indices])
-
             new_edge_dict = {}
             for parent_node in ready_to_replicate_indices:
                 parent_destinations = edge_dict[parent_node]
-
                 random_destination = random.choices(parent_destinations, k=1)
-                new_edge_dict[current_count] = (
-                    random_destination  # set child node to new destination
-                )
-                new_edge_dict[parent_node] = [current_count]  # add edge to parent node
+                new_edge_dict[current_count] = random_destination
+                new_edge_dict[parent_node] = [current_count]
                 current_count += 1
-
             return children, new_edge_dict
         return None, None
 
-    def grow(
-        self,
-        graph,
-        num_iterations: int = 1,
-        replicate_interval: Optional[int] = 1,
-    ):
+    def grow(self, graph, num_iterations: int = 1, replicate_interval: Optional[int] = 1):
         new_graph = graph.copy()
         for i in range(num_iterations):
             data = new_graph.to_data()
             x, new_edge_mat = self.forward(data)
-
             if replicate_interval is not None:
                 if i % replicate_interval == 0:
                     children, new_edge_dict = self.replicate(
