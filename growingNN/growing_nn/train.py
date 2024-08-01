@@ -36,21 +36,36 @@ def make_initial_graph(config):
     import numpy as np
 
     NUM_CHANNELS = config["num_channels"]
-
-    x = torch.randn((4, NUM_CHANNELS))
+    input_nodes = config["input_nodes"]
+    output_nodes = config["output_nodes"]
+    total_nodes = input_nodes + output_nodes
+    x = torch.randn((total_nodes, NUM_CHANNELS))
     x[0,1] = 1.0
     x[0,1] = 1.0
 
-    edge_dict = {0:[2,3], 1:[2,3], 2:[], 3:[]}
-    edge_mat = torch.zeros((4,4))
+    # edge_dict = {0:[2,3], 1:[2,3], 2:[], 3:[]}
+    edge_dict = {}
+    output_connections = [j for j in range(input_nodes, total_nodes)]
+    for i in range(total_nodes):
+        if i < input_nodes:
+            edge_dict[i] = output_connections
+        else:
+            edge_dict[i] = []
+
+    edge_mat = torch.zeros((total_nodes, total_nodes))
+
     for key, values in edge_dict.items():
         for value in values:
             edge_mat[key, value] = np.random.random()
 
-    print(edge_mat)
+    # print(edge_mat)
 
     graph = DirectedGraph(nodes= x, edge_dict=edge_dict, num_input_nodes=2, num_output_nodes=2, edge_mat=edge_mat)
     image = graph.plot()
+    plt.imshow(image)
+    plt.show()
+
+    return graph
 
 
 def train(config, dataloader):
