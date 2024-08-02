@@ -1,4 +1,4 @@
-from growing_nn.graph.graph_attention import EAGAttention
+from graph.graph_attention import EAGAttention
 import random
 from typing import Optional
 import torch
@@ -6,6 +6,7 @@ import torch.nn as nn
 from torch.distributions.bernoulli import Bernoulli
 from torch_geometric.nn import GCNConv
 import numpy as np
+
 
 class GraphNCA(nn.Module):
     def __init__(self, graph, num_hidden_channels: int = 16, max_replications: int = 2):
@@ -52,7 +53,13 @@ class GraphNCA(nn.Module):
     def forward(self, data):
         nodes = data.x.clone().detach().requires_grad_(True)
         if isinstance(data.edge_attr, np.ndarray):
-            edges = torch.tensor(data.edge_attr, dtype=torch.float32).clone().detach().cpu().numpy()
+            edges = (
+                torch.tensor(data.edge_attr, dtype=torch.float32)
+                .clone()
+                .detach()
+                .cpu()
+                .numpy()
+            )
         else:
             edges = data.edge_attr.clone().detach().cpu().numpy()
 
@@ -68,7 +75,6 @@ class GraphNCA(nn.Module):
         new_edge_mat = edge_features.squeeze(0).clone().detach().cpu().numpy()
 
         return nodes.squeeze(0), new_edge_mat
-
 
     def replicate(self, x, edge_dict):
         num_nodes = x.shape[0]
@@ -93,7 +99,9 @@ class GraphNCA(nn.Module):
             return children, new_edge_dict
         return None, None
 
-    def grow(self, graph, num_iterations: int = 1, replicate_interval: Optional[int] = 1):
+    def grow(
+        self, graph, num_iterations: int = 1, replicate_interval: Optional[int] = 1
+    ):
         new_graph = graph.copy()
         for i in range(num_iterations):
             data = new_graph.to_data()

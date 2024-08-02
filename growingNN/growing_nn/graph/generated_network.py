@@ -32,16 +32,20 @@ class GeneratedNetwork(MessagePassing):
         self.topological_order = self.graph.topological_sort()
 
     def compute_propagation(self, x, edge_index, edge_attr):
-    # Initialize the output tensor with the value channel of x.
+        # Initialize the output tensor with the value channel of x.
         out = x[:, self.value_channel : self.value_channel + 1]
 
         # Process nodes in topological order, starting from the nodes after the input nodes.
-        for node in self.topological_order[self.graph.num_input_nodes:]:
-            operation_logits = x[node, self.operation_channels[0] : self.operation_channels[1]]
+        for node in self.topological_order[self.graph.num_input_nodes :]:
+            operation_logits = x[
+                node, self.operation_channels[0] : self.operation_channels[1]
+            ]
             operations_dist = td.OneHotCategorical(logits=operation_logits)
             operation_probs = operations_dist.sample().squeeze()
 
-            activation_logits = x[node, self.activation_channels[0] : self.activation_channels[1]]
+            activation_logits = x[
+                node, self.activation_channels[0] : self.activation_channels[1]
+            ]
             activations_dist = td.OneHotCategorical(logits=activation_logits)
             activation_probs = activations_dist.sample().squeeze()
 
@@ -57,7 +61,6 @@ class GeneratedNetwork(MessagePassing):
             out[node] = out[node] + node_propagate[node] - out[node]
 
         return out
-
 
     def message(self, x_i, x_j, edge_weight, operation_probs, activation_probs):
         # x_i has shape [E, out_channels]
@@ -95,8 +98,9 @@ class GeneratedNetwork(MessagePassing):
         if not isinstance(activation_outputs, torch.Tensor):
             activation_outputs = torch.tensor(activation_outputs)
 
-        return activation_outputs * edge_weight.view(-1, 1)  # Weight messages by edge weight
-
+        return activation_outputs * edge_weight.view(
+            -1, 1
+        )  # Weight messages by edge weight
 
     def forward(self, inputs=None):
         data = self.graph.to_data()

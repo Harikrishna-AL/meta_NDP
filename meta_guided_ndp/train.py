@@ -199,7 +199,9 @@ def fitness_functional(config: dict, graph: meta_ndp):
             for _ in range(config["num_episode_evals"]):
                 # code for MNIST data evaluation
                 seed_env_eval = int(
-                    np.random.default_rng(config["env_seed"]).integers(2**32, size=1)[0]
+                    np.random.default_rng(config["env_seed"]).integers(2**32, size=1)[
+                        0
+                    ]
                 )
                 episode_reward = mnist_eval(G, config, seed_env_eval)
                 mean_episode_reward += episode_reward

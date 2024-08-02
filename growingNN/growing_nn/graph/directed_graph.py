@@ -7,7 +7,8 @@ import torch_geometric
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from torch_geometric.data import Data
 import math
-from growing_nn.graph.generated_network import GeneratedNetwork
+from graph.generated_network import GeneratedNetwork
+
 
 class DirectedGraph:
     def __init__(self, nodes, edge_dict, num_input_nodes, num_output_nodes, edge_mat):
@@ -34,19 +35,19 @@ class DirectedGraph:
             for d in destinations:
                 if d not in self.edge_dict[node]:
                     self.edge_dict[node].append(d)
-        
+
         new_mat_size = len(self.nodes)
-        new_edge_mat = np.zeros((new_mat_size, new_mat_size))   
-        
+        new_edge_mat = np.zeros((new_mat_size, new_mat_size))
+
         for i in range(self.edge_mat.shape[0]):
             for j in range(self.edge_mat.shape[1]):
                 new_edge_mat[i, j] = self.edge_mat[i, j]
-                
+
         for node in new_edges:
             destinations = new_edges[node]
             for d in destinations:
                 new_edge_mat[node, d] = 1
-            
+
         self.edge_mat = np.array(new_edge_mat)
 
     def add_nodes(self, nodes):
