@@ -87,6 +87,8 @@ def make_initial_graph(config):
     # plt.savefig("initial_graph.png")
     # plt.show()
 
+    # grow the graph till there are enough nodes
+    
     return graph
 
 
@@ -114,8 +116,15 @@ def train(config, dataloader, eval_dataloader):
     images = []
     fig = plt.figure()
     camera = Camera(fig)
+    input_nodes = config["input_nodes"]
 
     # growth loop
+    print("Growing the graph to make it large enough...")
+    for z in range(input_nodes):
+        graph = nca.grow(graph, 1)
+    print("Graph grown to desired size!")
+
+    print("Training the model...")
     for g in range(growth_cycles):
         graph = nca.grow(graph, 1)
 
