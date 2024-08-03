@@ -32,10 +32,10 @@ def train_epoch(optimizer, nca, graph, loss_list, images, fig, camera, inputs, t
     optimizer.step()
 
     loss_list.append(loss.item())
-    img = graph.plot(fig=fig)
-    camera.snap()
-    fig.clear()
-    images.append(img)
+    # img = graph.plot(fig=fig)
+    # camera.snap()
+    # fig.clear()
+    # images.append(img)
 
     return loss_list, images
 
@@ -82,9 +82,9 @@ def make_initial_graph(config):
         num_output_nodes=output_nodes,
         edge_mat=edge_mat,
     )
-    image = graph.plot()
-    plt.imshow(image)
-    plt.savefig("initial_graph.png")
+    # image = graph.plot()
+    # plt.imshow(image)
+    # plt.savefig("initial_graph.png")
     # plt.show()
 
     return graph
@@ -135,7 +135,7 @@ def train(config, dataloader, eval_dataloader):
                     inputs,
                     targets,
                 )
-                print(f"Loss at iteration {_}: {loss_list[-1]}")
+            print(f"Loss at iteration {_}: {loss_list[-1]}")
 
         # evaluate the model
         val_loss = evaluate(nca, graph, eval_dataloader)
@@ -145,10 +145,10 @@ def train(config, dataloader, eval_dataloader):
         plt.legend()
         plt.savefig(f"loss_plot_{g}.png")
 
-    imgs = [Image.fromarray(img) for img in images]
-    imgs[0].save(
-        "animation_.gif", save_all=True, append_images=imgs[1:], duration=100, loop=0
-    )
+    # imgs = [Image.fromarray(img) for img in images]
+    # imgs[0].save(
+    #     "animation_.gif", save_all=True, append_images=imgs[1:], duration=100, loop=0
+    # )
 
 
 if __name__ == "__main__":
